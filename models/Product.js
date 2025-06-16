@@ -1,16 +1,21 @@
 const mongoose = require('mongoose');
 
-const productSchema = new mongoose.Schema({
-  title: String,
-  basePrice: Number,
-  price: String,
-  minOrder: String,
-  category: String,
-  img: String,
-  region: String,
-  discount: String,
-  farmer: String,
-  isFlashDeal: Boolean,
-});
+const ProductSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  current_price: { type: String, required: true }, 
+  past_price: { type: String }, 
+  img: { 
+    type: String }, 
+  category: {
+  type: String,
+  required: true,
+  enum: [
+    'vegetables', 'fruits', 'grains', 'tubers', 'legumes',
+    'seeds', 'herbs', 'oil_crops', 'cereals', 'packaged'
+  ]
+},
+  region: { type: String },
+}, { timestamps: true });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model('Product', ProductSchema);
