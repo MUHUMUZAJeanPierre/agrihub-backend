@@ -16,9 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/products', productRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/cart', cartRoutes);
+app.use('/', productRoutes);
+app.use('/', authRoutes);
+app.use('/', cartRoutes);
 
 
 const PORT = process.env.PORT || 5000;
