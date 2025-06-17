@@ -13,8 +13,8 @@ router.use(authMiddleware); // Protect all cart routes
 
 router.get('/', getCart);
 router.post('/', addToCart);
-router.put('/', updateCartItem);
-router.delete('/', removeFromCart);
+router.put('/:id', updateCartItem);
+router.delete('/:id', removeFromCart);
 router.delete('/', clearCart);
 
 module.exports = router;
