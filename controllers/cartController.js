@@ -2,10 +2,13 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 
 exports.getCart = async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
-  res.json(cart || { user: req.user.id, items: [] });
+  try {
+    const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+    return res.json(cart || { user: req.user.id, items: [] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to fetch cart' });
+  }
 };
-
 exports.addToCart = async (req, res) => {
   const { productId, quantity } = req.body;
 

@@ -11,10 +11,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 router.use(authMiddleware); // Protect all cart routes
 
-router.get('/', getCart);
-router.post('/', addToCart);
-router.put('/:id', updateCartItem);
-router.delete('/:id', removeFromCart);
-router.delete('/', clearCart);
+router.get('/get/:id', getCart);
+router.post('/add', addToCart);
+router.put('/update/:id', updateCartItem);
+router.delete('/remove/:id', removeFromCart);
+router.delete('/clear/', clearCart);
 
 module.exports = router;
