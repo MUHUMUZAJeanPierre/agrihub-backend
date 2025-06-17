@@ -19,7 +19,7 @@ app.use(express.json());
 
 app.use('/product', productRoutes);
 app.use('/', authRoutes);
-app.use('/', cartRoutes);
+app.use('/cart', cartRoutes);
 
 
 const PORT = process.env.PORT || 5000;
