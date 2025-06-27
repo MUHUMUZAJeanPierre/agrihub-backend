@@ -56,6 +56,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const farmerRoutes = require('./routes/farmerRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const initSocket = require('./socket/socket');
+const orderRoutes = require('./routes/orderRoutes');
 
 dotenv.config();
 connectDB();
@@ -79,6 +80,9 @@ app.use('/', authRoutes);
 app.use('/cart', cartRoutes);
 app.use('/api', farmerRoutes);
 app.use('/api', messageRoutes);
+app.use('/api/orders', orderRoutes);
+
+
 
 
 initSocket(io);

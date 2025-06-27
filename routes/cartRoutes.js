@@ -9,7 +9,7 @@ const {
 } = require('../controllers/cartController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.use(authMiddleware); // Protect all cart routes
+router.use(authMiddleware); 
 
 router.get('/get/:id', getCart);
 router.post('/add', addToCart);

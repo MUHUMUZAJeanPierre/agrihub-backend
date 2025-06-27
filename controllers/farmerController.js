@@ -1,7 +1,6 @@
 // controllers/farmerController.js
 const Farmer = require('../models/Farmer');
 
-// GET all farmer blogs
 exports.getAllFarmers = async (req, res) => {
   try {
     const farmers = await Farmer.find();
@@ -19,7 +18,7 @@ exports.getAllFarmers = async (req, res) => {
   }
 };
 
-// GET single farmer entry
+
 exports.getFarmerById = async (req, res) => {
   try {
     const farmer = await Farmer.findById(req.params.id);
