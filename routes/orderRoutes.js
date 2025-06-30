@@ -8,3 +8,4 @@ router.post('/place-order', authMiddleware, orderController.placeOrder);
 router.get('/orders', authMiddleware, orderController.getOrders);
 
 module.exports = router;
+    
