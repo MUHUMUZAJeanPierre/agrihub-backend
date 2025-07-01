@@ -2,36 +2,6 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 
-// exports.placeOrder = async (req, res) => {
-//   try {
-//     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
-//     if (!cart || cart.items.length === 0) {
-//       return res.status(400).json({ error: 'Cart is empty' });
-//     }
-
-//     const totalAmount = cart.items.reduce((sum, item) => {
-//       return sum + item.quantity * item.product.price;
-//     }, 0);
-
-//     const order = new Order({
-//       user: req.user.id,
-//       items: cart.items.map(item => ({
-//         product: item.product._id,
-//         quantity: item.quantity,
-//       })),
-//       totalAmount,
-//     });
-
-//     await order.save();
-//     await Cart.findOneAndDelete({ user: req.user.id });
-
-//     res.status(201).json({ message: 'Order placed', order });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Failed to place order' });
-//   }
-// };
-
-
 
 exports.getOrders = async (req, res) => {
   try {
@@ -42,21 +12,26 @@ exports.getOrders = async (req, res) => {
   }
 };
 
+const extractPrice = (price) => {
+  const numericPrice = parseFloat(price.replace(/[^\d.]/g, ''));
+  return isNaN(numericPrice) ? 0 : numericPrice;  
+};
+
 
 // exports.placeOrder = async (req, res) => {
+//   console.log("Authenticated User:", req.user);  
+  
 //   try {
 //     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
 //     if (!cart || cart.items.length === 0) {
 //       return res.status(400).json({ error: 'Cart is empty' });
 //     }
 
-//     console.log('Cart items:', cart.items); // Log cart items for debugging
-
-//     const totalAmount = cart.items.reduce((sum, item) => {
-//       return sum + item.quantity * item.product.price;
-//     }, 0);
-
-//     console.log('Total amount calculated:', totalAmount); // Log calculated total amount
+//     let totalAmount = 0;
+//     cart.items.forEach(item => {
+//       const price = extractPrice(item.product.current_price);
+//       totalAmount += price * item.quantity;
+//     });
 
 //     const order = new Order({
 //       user: req.user.id,
@@ -70,20 +45,18 @@ exports.getOrders = async (req, res) => {
 //     await order.save();
 //     await Cart.findOneAndDelete({ user: req.user.id });
 
-//     res.status(201).json({ message: 'Order placed', order });
+//     res.status(201).json({ message: 'Order placed successfully', order });
 //   } catch (err) {
-//     console.error('Error placing order:', err); // Log full error for debugging
+//     console.error('Error placing order:', err);
 //     res.status(500).json({ error: 'Failed to place order' });
 //   }
 // };
-const extractPrice = (price) => {
-  const numericPrice = parseFloat(price.replace(/[^\d.]/g, ''));
-  return isNaN(numericPrice) ? 0 : numericPrice;  
-};
+
 exports.placeOrder = async (req, res) => {
-  console.log("Authenticated User:", req.user);  
-  
+  console.log("Authenticated User:", req.user);
+
   try {
+    // Get the user's cart
     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
@@ -95,6 +68,7 @@ exports.placeOrder = async (req, res) => {
       totalAmount += price * item.quantity;
     });
 
+    // Create a new order from the cart
     const order = new Order({
       user: req.user.id,
       items: cart.items.map(item => ({
@@ -104,8 +78,11 @@ exports.placeOrder = async (req, res) => {
       totalAmount,
     });
 
+    // Save the order to the database
     await order.save();
-    await Cart.findOneAndDelete({ user: req.user.id });
+
+    // Do not clear the cart. Keep the items in the cart for future use.
+    // await Cart.findOneAndDelete({ user: req.user.id }); // Remove this line if you don't want to clear the cart
 
     res.status(201).json({ message: 'Order placed successfully', order });
   } catch (err) {
@@ -113,3 +90,10 @@ exports.placeOrder = async (req, res) => {
     res.status(500).json({ error: 'Failed to place order' });
   }
 };
+
+
+exports.clearCart = async (req, res) => {
+  await Cart.findOneAndDelete({ user: req.user.id });
+  res.status(204).send();
+};
+
