@@ -72,7 +72,7 @@ exports.placeOrder = async (req, res) => {
     const order = new Order({
       user: req.user.id,
       items: cart.items.map(item => ({
-        product: item._id,
+        product: item.product._id,
         quantity: item.quantity,
       })),
       totalAmount,
