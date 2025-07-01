@@ -52,13 +52,69 @@ const extractPrice = (price) => {
 //   }
 // };
 
+// exports.placeOrder = async (req, res) => {
+//   console.log("Authenticated User:", req.user);
+
+//   try {
+//     // Get the user's cart
+//     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+//     console.log("Cart items after population:", cart.items);
+//     if (!cart || cart.items.length === 0) {
+//       return res.status(400).json({ error: 'Cart is empty' });
+//     }
+
+//     let totalAmount = 0;
+//     cart.items.forEach(item => {
+//       const price = extractPrice(item.product.current_price);
+//       totalAmount += price * item.quantity;
+//     });
+
+//     // Create a new order from the cart
+//     const order = new Order({
+//       user: req.user.id,
+//       items: cart.items.map(item => ({
+//         product: item.product._id,
+//         quantity: item.quantity,
+//       })),
+//       totalAmount,
+//     });
+
+//     // Save the order to the database
+//     await order.save();
+
+//     // Do not clear the cart. Keep the items in the cart for future use.
+//     // await Cart.findOneAndDelete({ user: req.user.id }); // Remove this line if you don't want to clear the cart
+
+//     res.status(201).json({ message: 'Order placed successfully', order });
+//   } catch (err) {
+//     console.error('Error placing order:', err);
+//     res.status(500).json({ error: 'Failed to place order' });
+//   }
+// };
+
+
+exports.clearCart = async (req, res) => {
+  await Cart.findOneAndDelete({ user: req.user.id });
+  res.status(204).send();
+};
+
+
+
 exports.placeOrder = async (req, res) => {
   console.log("Authenticated User:", req.user);
 
   try {
     // Get the user's cart
     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
-    if (!cart || cart.items.length === 0) {
+    
+    // Log the cart to verify its contents
+    console.log("Cart after population:", cart);
+
+    if (!cart) {
+      return res.status(400).json({ error: 'Cart not found' });
+    }
+
+    if (!cart.items || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
@@ -81,8 +137,8 @@ exports.placeOrder = async (req, res) => {
     // Save the order to the database
     await order.save();
 
-    // Do not clear the cart. Keep the items in the cart for future use.
-    // await Cart.findOneAndDelete({ user: req.user.id }); // Remove this line if you don't want to clear the cart
+    // Optionally clear the cart, if needed
+    // await Cart.findOneAndDelete({ user: req.user.id });
 
     res.status(201).json({ message: 'Order placed successfully', order });
   } catch (err) {
@@ -90,10 +146,3 @@ exports.placeOrder = async (req, res) => {
     res.status(500).json({ error: 'Failed to place order' });
   }
 };
-
-
-exports.clearCart = async (req, res) => {
-  await Cart.findOneAndDelete({ user: req.user.id });
-  res.status(204).send();
-};
-
