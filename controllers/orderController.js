@@ -1,6 +1,21 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 
+exports.getOrdersWithoutId = async (req, res) => {
+  try {
+    const orders = await Order.find().populate('items.product'); // Removed user filtering
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found' }); // Adjusted message since no user filter is applied
+    }
+
+    res.json(orders); 
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
+  }
+};
+ 
 
 exports.getOrders = async (req, res) => {
   try {
