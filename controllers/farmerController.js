@@ -46,8 +46,29 @@ exports.getFarmerById = async (req, res) => {
 // POST create farmer entry
 exports.createFarmer = async (req, res) => {
   try {
-    const newFarmer = new Farmer(req.body);
+    const { blogTitle, blogurl, date, description, category, readTime, severity, author } = req.body;
+
+    if (!author) {
+      return res.status(400).json({
+        message: 'Author is required',
+        status: 'error',
+        data: null
+      });
+    }
+
+    const newFarmer = new Farmer({
+      blogTitle,
+      blogurl,
+      date,
+      description,
+      category,
+      readTime,
+      severity,
+      author,  // 👈 Store author
+    });
+
     const savedFarmer = await newFarmer.save();
+
     res.status(201).json({
       message: 'Farmer entry created successfully',
       status: 'success',
@@ -61,6 +82,7 @@ exports.createFarmer = async (req, res) => {
     });
   }
 };
+
 
 // PUT update farmer entry
 exports.updateFarmer = async (req, res) => {

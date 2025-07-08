@@ -27,7 +27,10 @@ const farmerSchema = new mongoose.Schema({
     },
   severity: { 
     type: String, enum: ['Low', 'Medium', 'High'], 
-    required: true }
+    required: true 
+  },
+  author: { type: String, required: true },
+    
 });
 
 module.exports = mongoose.model('Farmer', farmerSchema);
