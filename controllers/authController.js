@@ -49,7 +49,7 @@ exports.getUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
 
-    const users = await User.find({ role }).select('-password'); // Exclude passwords
+    const users = await User.find({ role }).select('-password'); 
 
     if (users.length === 0) {
       return res.status(404).json({ message: `No users found with role: ${role}` });
@@ -66,13 +66,10 @@ exports.getUsersByRole = async (req, res) => {
 exports.getUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
-
-    const users = await User.find({ role }).select('-password'); // Exclude passwords
-
+    const users = await User.find({ role }).select('-password'); 
     if (users.length === 0) {
       return res.status(404).json({ message: `No users found with role: ${role}` });
     }
-
     res.status(200).json(users);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch users by role' });

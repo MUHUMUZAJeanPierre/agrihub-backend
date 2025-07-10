@@ -1,46 +1,73 @@
-const  Chat  = require('../models/Chat');
-const User  = require('../models/User');
+const Chat = require('../models/Chat');
+const User = require('../models/User');
 
-// For socket use
-const createChatFromSocket = async ({ senderId, socketId, content }) => {
+// Create chat from socket or internal use
+const createChatFromSocket = async ({ sender, receiver, message }) => {
   return await Chat.create({
-    senderId,
-    socketId,
-    content,
+    sender,
+    receiver,
+    message,
     readStatus: false,
   });
 };
 
-// Called by REST route (unchanged)
+// Create chat from REST request
 const createChat = async (req, res) => {
   try {
-    const { senderId, socketId, content } = req.body;
-    const chat = await createChatFromSocket({ senderId, socketId, content });
+    const { sender, receiver, message } = req.body;
+    const chat = await createChatFromSocket({ sender, receiver, message });
     res.status(201).json(chat);
   } catch (error) {
+    console.error("Error creating chat:", error);
     res.status(500).json({ error: 'Failed to send message' });
   }
 };
 
+// Get all chats (admin/debug)
 const getAllChats = async (req, res) => {
   try {
-    const chats = await Chat.find().sort({ createdAt: -1 });
+    const chats = await Chat.find().sort({ timestamp: -1 });
     res.json(chats);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch chats' });
   }
 };
 
+// Get chats by sender ID only (optional)
 const getChatsBySender = async (req, res) => {
   try {
     const { senderId } = req.params;
-    const chats = await Chat.find({ senderId });
+    const chats = await Chat.find({ sender: senderId });
     res.json(chats);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch sender chats' });
   }
 };
 
+// ✅ Get conversation between two users (sender + receiver)
+const getConversationBetweenUsers = async (req, res) => {
+  try {
+    const { user1, user2 } = req.query;
+
+    if (!user1 || !user2) {
+      return res.status(400).json({ error: 'Missing user1 or user2' });
+    }
+
+    const chats = await Chat.find({
+      $or: [
+        { sender: user1, receiver: user2 },
+        { sender: user2, receiver: user1 }
+      ]
+    }).sort({ timestamp: 1 });
+
+    res.status(200).json(chats);
+  } catch (error) {
+    console.error('Error fetching conversation:', error);
+    res.status(500).json({ error: 'Failed to fetch chat conversation' });
+  }
+};
+
+// Update a chat message (e.g., readStatus)
 const updateChat = async (req, res) => {
   try {
     const { id } = req.params;
@@ -51,6 +78,7 @@ const updateChat = async (req, res) => {
   }
 };
 
+// Delete a chat message
 const deleteChat = async (req, res) => {
   try {
     const { id } = req.params;
@@ -63,9 +91,10 @@ const deleteChat = async (req, res) => {
 
 module.exports = {
   createChat,
-  createChatFromSocket, 
+  createChatFromSocket,
   getAllChats,
   getChatsBySender,
+  getConversationBetweenUsers,
   updateChat,
   deleteChat,
 };
