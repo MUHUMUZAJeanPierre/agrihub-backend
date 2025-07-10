@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
 const chatController = require('../controllers/chatController');
 const { findUsername, findUserRole } = require('../utils/tokenGenerate.js');
-const { User } = require('../models/User'); // ✅ correct if models/index.js exports User
+const  User  = require('../models/User'); // ✅ correct if models/index.js exports User
 
 const initializeSocketIo = (server) => {
   const io = new Server(server, {

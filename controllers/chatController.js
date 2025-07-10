@@ -1,4 +1,5 @@
-const { Chat,User } = require('../models/User');
+const  Chat  = require('../models/Chat');
+const User  = require('../models/User');
 
 // For socket use
 const createChatFromSocket = async ({ senderId, socketId, content }) => {
