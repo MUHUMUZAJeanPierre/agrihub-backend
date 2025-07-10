@@ -33,3 +33,48 @@ exports.login = async (req, res) => {
   const token = generateToken(user);
   res.json({ token, user });
 };
+
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); 
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+
+exports.getUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.params;
+
+    const users = await User.find({ role }).select('-password'); // Exclude passwords
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: `No users found with role: ${role}` });
+    }
+
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users by role' });
+  }
+};
+
+
+
+exports.getUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.params;
+
+    const users = await User.find({ role }).select('-password'); // Exclude passwords
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: `No users found with role: ${role}` });
+    }
+
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users by role' });
+  }
+};
