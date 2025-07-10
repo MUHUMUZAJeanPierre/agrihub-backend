@@ -1,7 +1,11 @@
 const { Server } = require('socket.io');
 const chatController = require('../controllers/chatController');
-const { findUsername, findUserRole } = require('../utils/tokenGenerate.js');
-const  User  = require('../models/User'); // ✅ correct if models/index.js exports User
+const { findUsername, findUserRole } = require('../utils/tokenGenerate');
+
+const getRoomId = (user1, user2) => {
+  const sorted = [user1, user2].sort();
+  return `chat_${sorted[0]}_${sorted[1]}`;
+};
 
 const initializeSocketIo = (server) => {
   const io = new Server(server, {
@@ -11,10 +15,10 @@ const initializeSocketIo = (server) => {
     },
   });
 
-  // 🔐 Auth middleware: expects userId in handshake
+  // Middleware to authenticate and assign roles
   io.use(async (socket, next) => {
     const userId = socket.handshake.auth?.userId;
-    if (!userId) return next(new Error('Missing userId in socket auth'));
+    if (!userId) return next(new Error('Missing userId'));
 
     const role = await findUserRole(userId);
     if (!['farmer', 'plant pathologist'].includes(role)) {
@@ -23,47 +27,48 @@ const initializeSocketIo = (server) => {
 
     socket.userId = userId;
     socket.role = role;
-    socket.join(userId); // Join room for direct messaging
     next();
   });
 
-  // ✅ Handle connection
   io.on('connection', (socket) => {
-    console.log(`🟢 User connected: ${socket.userId}`);
+    console.log(`🟢 Connected: ${socket.userId}`);
 
-    // 📨 Handle message sending
-    socket.on('send_message', async (data) => {
+    socket.on('join_room', ({ otherUserId }) => {
+      const roomId = getRoomId(socket.userId, otherUserId);
+      socket.join(roomId);
+      console.log(`🔗 ${socket.userId} joined room ${roomId}`);
+    });
+
+    socket.on('send_room_message', async (data) => {
       try {
         const { receiver, message } = data;
-        const senderId = socket.userId;
+        const sender = socket.userId;
+        const roomId = getRoomId(sender, receiver);
 
-        // Save to DB
         const savedMessage = await chatController.createChatFromSocket({
-          senderId,
-          socketId: socket.id,
-          content: message,
+          sender,
+          receiver,
+          message,
         });
 
-        const senderName = await findUsername(senderId);
+        const senderName = await findUsername(sender);
 
-        // Emit to receiver room only
-        io.to(receiver).emit(`receive_message_${receiver}`, {
+        io.to(roomId).emit('room_message', {
           ...savedMessage.toObject(),
           name: senderName,
-          receiver,
         });
       } catch (err) {
-        console.error('❌ Socket message error:', err);
+        console.error('❌ Error sending room message:', err);
       }
     });
 
-    // ✍️ Typing indicator
-    socket.on('typing', ({ toUserId, name }) => {
-      io.to(toUserId).emit('typing', { from: socket.userId, name });
+    socket.on('typing', ({ otherUserId, name }) => {
+      const roomId = getRoomId(socket.userId, otherUserId);
+      io.to(roomId).emit('typing', { from: socket.userId, name });
     });
 
     socket.on('disconnect', () => {
-      console.log(`🔴 User disconnected: ${socket.userId}`);
+      console.log(`🔴 Disconnected: ${socket.userId}`);
     });
   });
 };
