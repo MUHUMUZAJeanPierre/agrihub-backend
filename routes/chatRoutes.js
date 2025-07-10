@@ -9,7 +9,7 @@ router.post('/', chatController.createChat);
 router.get('/', chatController.getAllChats);
 
 // GET - chats by sender ID
-router.get('/sender/:senderId', chatController.getChatsBySender);
+router.get('/:senderId', chatController.getChatsBySender);
 
 // PUT - update chat (e.g., mark as read)
 router.put('/:id', chatController.updateChat);
