@@ -27,10 +27,8 @@ app.use('/api', require('./routes/messageRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 
-// Start socket.io
 initializeSocketIo(server);
 
-// Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
