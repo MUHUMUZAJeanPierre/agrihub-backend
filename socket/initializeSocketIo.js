@@ -168,7 +168,6 @@
 
 // module.exports = { initializeSocketIo };
 
-
 const { Server } = require('socket.io');
 const chatController = require('../controllers/chatController');
 const { findUsername, findUserRole } = require('../utils/tokenGenerate');
@@ -198,6 +197,9 @@ const initializeSocketIo = (server) => {
     pingInterval: 25000
   });
 
+  // Store connected users for direct messaging
+  const connectedUsers = new Map();
+
   // Middleware to authenticate and assign roles
   io.use(async (socket, next) => {
     try {
@@ -225,7 +227,14 @@ const initializeSocketIo = (server) => {
   io.on('connection', (socket) => {
     console.log(`🟢 Connected: ${socket.userId} (${socket.role})`);
 
-    // Join user to their personal room for notifications
+    // Store connected user
+    connectedUsers.set(socket.userId, {
+      socketId: socket.id,
+      role: socket.role,
+      timestamp: new Date()
+    });
+
+    // Join user to their personal room for direct messaging
     socket.join(`user_${socket.userId}`);
 
     // FIXED: Enhanced room joining with specific recipient targeting
@@ -246,7 +255,89 @@ const initializeSocketIo = (server) => {
       }
     });
 
-    // FIXED: Enhanced room message handling with strict targeting
+    // FIXED: Direct message sending - only to specific recipient
+    socket.on('send_direct_message', async (data) => {
+      try {
+        const { receiver, message, targetRecipient, senderValidation, receiverValidation } = data;
+        
+        if (!receiver || !message?.trim() || !targetRecipient) {
+          socket.emit('message_error', { 
+            message: 'Missing receiver, message content, or target recipient' 
+          });
+          return;
+        }
+
+        const sender = socket.userId;
+        
+        // FIXED: Strict validation - ensure sender is sending to the intended recipient
+        if (receiver !== targetRecipient) {
+          console.error('Recipient mismatch:', { receiver, targetRecipient, sender });
+          socket.emit('message_error', { 
+            message: 'Recipient validation failed - message not delivered to intended recipient' 
+          });
+          return;
+        }
+
+        // Save message to database
+        const savedMessage = await chatController.createChatFromSocket({
+          sender,
+          receiver,
+          message: message.trim(),
+        });
+
+        const senderName = await findUsername(sender);
+
+        const messageData = {
+          ...savedMessage.toObject(),
+          senderName,
+          targetRecipient,
+          senderValidation,
+          receiverValidation,
+          timestamp: new Date().toISOString(),
+        };
+
+        console.log(`📤 Direct message from ${sender} to ${targetRecipient}:`, messageData.message);
+
+        // FIXED: Send ONLY to the target recipient's personal room
+        const targetUser = connectedUsers.get(targetRecipient);
+        if (targetUser) {
+          // Target user is online - send directly to their socket
+          io.to(targetUser.socketId).emit('direct_message', messageData);
+          console.log(`✅ Message delivered to online user ${targetRecipient}`);
+        } else {
+          // Target user is offline - send to their personal room for when they come online
+          io.to(`user_${targetRecipient}`).emit('direct_message', messageData);
+          console.log(`📬 Message queued for offline user ${targetRecipient}`);
+        }
+        
+        // Send confirmation to sender
+        socket.emit('direct_message', messageData);
+
+        // Send notification to target user
+        io.to(`user_${targetRecipient}`).emit('new_message_notification', {
+          from: sender,
+          fromName: senderName,
+          message: message.trim(),
+          timestamp: savedMessage.timestamp
+        });
+
+        // Confirm message sent
+        socket.emit('message_sent', {
+          messageId: savedMessage._id,
+          timestamp: savedMessage.timestamp,
+          delivered: true
+        });
+
+      } catch (error) {
+        console.error('❌ Error sending direct message:', error);
+        socket.emit('message_error', { 
+          message: 'Failed to send message',
+          error: error.message 
+        });
+      }
+    });
+
+    // FIXED: Room message for compatibility (but with strict targeting)
     socket.on('send_room_message', async (data) => {
       try {
         const { receiver, message, targetRecipient, roomId, senderValidation, receiverValidation } = data;
@@ -262,9 +353,9 @@ const initializeSocketIo = (server) => {
         
         // FIXED: Validate that the sender is actually sending to the intended recipient
         if (receiver !== targetRecipient) {
-          console.error('Recipient mismatch:', { receiver, targetRecipient });
+          console.error('Room message recipient mismatch:', { receiver, targetRecipient, sender });
           socket.emit('message_error', { 
-            message: 'Recipient validation failed' 
+            message: 'Room message recipient validation failed' 
           });
           return;
         }
@@ -278,7 +369,6 @@ const initializeSocketIo = (server) => {
 
         const senderName = await findUsername(sender);
 
-        // FIXED: Send message only to the specific recipient, not broadcast to room
         const messageData = {
           ...savedMessage.toObject(),
           senderName,
@@ -287,10 +377,21 @@ const initializeSocketIo = (server) => {
           receiverValidation,
         };
 
-        // Send to the specific recipient's personal room
-        io.to(`user_${receiver}`).emit('room_message', messageData);
+        console.log(`📤 Room message from ${sender} to ${targetRecipient}:`, messageData.message);
+
+        // FIXED: Send message only to the specific recipient, not broadcast to room
+        const targetUser = connectedUsers.get(receiver);
+        if (targetUser) {
+          // Target user is online - send directly to their socket
+          io.to(targetUser.socketId).emit('room_message', messageData);
+          console.log(`✅ Room message delivered to online user ${receiver}`);
+        } else {
+          // Target user is offline - send to their personal room
+          io.to(`user_${receiver}`).emit('room_message', messageData);
+          console.log(`📬 Room message queued for offline user ${receiver}`);
+        }
         
-        // Also send to the sender for confirmation
+        // Send confirmation to sender
         socket.emit('room_message', messageData);
 
         // Emit to receiver's personal room for notifications
@@ -304,7 +405,8 @@ const initializeSocketIo = (server) => {
         // Confirm message sent
         socket.emit('message_sent', {
           messageId: savedMessage._id,
-          timestamp: savedMessage.timestamp
+          timestamp: savedMessage.timestamp,
+          delivered: true
         });
 
       } catch (error) {
@@ -316,7 +418,7 @@ const initializeSocketIo = (server) => {
       }
     });
 
-    // FIXED: Add private message handler for strict targeting
+    // FIXED: Private message handler for strict targeting
     socket.on('send_private_message', async (data) => {
       try {
         const { receiver, message, targetRecipient, senderValidation, receiverValidation } = data;
@@ -332,7 +434,7 @@ const initializeSocketIo = (server) => {
         
         // FIXED: Strict validation for private messages
         if (receiver !== targetRecipient) {
-          console.error('Private message recipient mismatch:', { receiver, targetRecipient });
+          console.error('Private message recipient mismatch:', { receiver, targetRecipient, sender });
           socket.emit('message_error', { 
             message: 'Private message recipient validation failed' 
           });
@@ -356,8 +458,19 @@ const initializeSocketIo = (server) => {
           receiverValidation,
         };
 
+        console.log(`📤 Private message from ${sender} to ${targetRecipient}:`, messageData.message);
+
         // FIXED: Send private message only to the target recipient
-        io.to(`user_${targetRecipient}`).emit('private_message', messageData);
+        const targetUser = connectedUsers.get(targetRecipient);
+        if (targetUser) {
+          // Target user is online - send directly to their socket
+          io.to(targetUser.socketId).emit('private_message', messageData);
+          console.log(`✅ Private message delivered to online user ${targetRecipient}`);
+        } else {
+          // Target user is offline - send to their personal room
+          io.to(`user_${targetRecipient}`).emit('private_message', messageData);
+          console.log(`📬 Private message queued for offline user ${targetRecipient}`);
+        }
         
         // Send confirmation to sender
         socket.emit('private_message', messageData);
@@ -373,7 +486,8 @@ const initializeSocketIo = (server) => {
         // Confirm message sent
         socket.emit('message_sent', {
           messageId: savedMessage._id,
-          timestamp: savedMessage.timestamp
+          timestamp: savedMessage.timestamp,
+          delivered: true
         });
 
       } catch (error) {
@@ -423,6 +537,8 @@ const initializeSocketIo = (server) => {
 
     socket.on('disconnect', (reason) => {
       console.log(`🔴 Disconnected: ${socket.userId} - Reason: ${reason}`);
+      // Remove user from connected users
+      connectedUsers.delete(socket.userId);
     });
 
     socket.on('error', (error) => {
