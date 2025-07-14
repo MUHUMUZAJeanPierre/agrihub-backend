@@ -48,6 +48,28 @@ const extractPrice = (price) => {
 
 
 
+exports.getOrdersByUserId = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const orders = await Order.find({ user: userId }).populate('items.product');
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this user' });
+    }
+
+    res.json(orders); 
+  } catch (err) {
+    console.error('Error fetching orders by user ID:', err);
+    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
+  }
+};
+
+
 
 
 
@@ -74,8 +96,6 @@ exports.placeOrder = async (req, res) => {
       const price = extractPrice(item.product.current_price);
       totalAmount += price * item.quantity;
     });
-
-    // Create a new order from the cart
     const order = new Order({
       user: req.user.id,
       items: cart.items.map(item => ({
@@ -85,12 +105,7 @@ exports.placeOrder = async (req, res) => {
       totalAmount,
     });
 
-    // Save the order to the database
     await order.save();
-
-    // Optionally clear the cart, if needed
-    // await Cart.findOneAndDelete({ user: req.user.id });
-
     res.status(201).json({ message: 'Order placed successfully', order });
   } catch (err) {
     console.error('Error placing order:', err);
