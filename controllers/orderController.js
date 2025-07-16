@@ -50,26 +50,28 @@ const extractPrice = (price) => {
 
 exports.getOrdersByUserId = async (req, res) => {
   try {
-    const { userId } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    const buyerId = req.params.id;
+
+    if (!buyerId) {
+      return res.status(400).json({ error: 'Buyer ID is required' });
     }
 
-    const orders = await Order.find({ user: userId }).populate('items.product');
+    if (!mongoose.Types.ObjectId.isValid(buyerId)) {
+      return res.status(400).json({ error: 'Invalid Buyer ID format' });
+    }
+
+    const orders = await Order.find({ user: buyerId }).populate('items.product');
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: 'No orders found for this user' });
+      return res.status(404).json({ message: 'No orders found for this buyer' });
     }
 
-    res.json(orders); 
+    res.status(200).json(orders); 
   } catch (err) {
-    console.error('Error fetching orders by user ID:', err);
+    console.error('Error fetching orders by buyer ID:', err);
     res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
   }
 };
-
-
 
 
 
