@@ -1,5 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
+const Product = require('../models/Product');
+const mongoose = require('mongoose');
 
 exports.getOrdersWithoutId = async (req, res) => {
   try {
@@ -74,15 +76,18 @@ exports.getOrdersByUserId = async (req, res) => {
 
 
 
+
 exports.placeOrder = async (req, res) => {
   console.log("Authenticated User:", req.user);
 
   try {
-    // Get the user's cart
-    const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
-    
-    // Log the cart to verify its contents
-    console.log("Cart after population:", cart);
+    const cart = await Cart.findOne({ user: req.user.id }).populate({
+      path: 'items.product',
+      populate: {
+        path: 'farmer', // 👈 Nested populate
+        select: 'name email phone role' // Include farmer details you want
+      }
+    });
 
     if (!cart) {
       return res.status(400).json({ error: 'Cart not found' });
@@ -97,6 +102,7 @@ exports.placeOrder = async (req, res) => {
       const price = extractPrice(item.product.current_price);
       totalAmount += price * item.quantity;
     });
+
     const order = new Order({
       user: req.user.id,
       items: cart.items.map(item => ({
@@ -106,8 +112,18 @@ exports.placeOrder = async (req, res) => {
       totalAmount,
     });
 
-    await order.save();
-    res.status(201).json({ message: 'Order placed successfully', order });
+    const savedOrder = await order.save();
+
+    // 🔄 Repopulate order with product & farmer details for response
+    const populatedOrder = await Order.findById(savedOrder._id).populate({
+      path: 'items.product',
+      populate: {
+        path: 'farmer',
+        select: 'name email phone role' // Choose fields you need
+      }
+    }).populate('user', 'name email');
+
+    res.status(201).json({ message: 'Order placed successfully', order: populatedOrder });
   } catch (err) {
     console.error('Error placing order:', err);
     res.status(500).json({ error: 'Failed to place order' });
@@ -115,8 +131,7 @@ exports.placeOrder = async (req, res) => {
 };
 
 
-const mongoose = require('mongoose');
-const Product = require('../models/Product');
+
 
 exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
   try {

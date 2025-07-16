@@ -64,7 +64,7 @@ exports.createFarmer = async (req, res) => {
       category,
       readTime,
       severity,
-      author,  // 👈 Store author
+      author,  
     });
 
     const savedFarmer = await newFarmer.save();
