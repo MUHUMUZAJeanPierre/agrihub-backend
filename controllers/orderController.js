@@ -3,8 +3,7 @@ const Cart = require('../models/Cart');
 
 exports.getOrdersWithoutId = async (req, res) => {
   try {
-    const orders = await Order.find().populate('items.product'); // Removed user filtering
-
+    const orders = await Order.find().populate('items.product'); 
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: 'No orders found' }); // Adjusted message since no user filter is applied
     }
@@ -112,5 +111,61 @@ exports.placeOrder = async (req, res) => {
   } catch (err) {
     console.error('Error placing order:', err);
     res.status(500).json({ error: 'Failed to place order' });
+  }
+};
+
+
+const mongoose = require('mongoose');
+const Product = require('../models/Product');
+
+exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
+  try {
+    const farmerId = req.user.id;
+
+    // 1. Fata ibicuruzwa by'uyu mufama
+    const products = await Product.find({ farmer: farmerId }).select('_id name');
+    const productIds = products.map(p => p._id);
+
+    if (productIds.length === 0) {
+      return res.status(404).json({ message: 'Nta bicuruzwa byabonetse by\'uyu mufama' });
+    }
+
+    // 2. Fata orders zose zifite ibyo bicuruzwa
+    const orders = await Order.find({ 'items.product': { $in: productIds } })
+      .populate('items.product')
+      .populate('user');
+
+    // 3. Group orders by product
+    const grouped = {};
+
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const product = item.product;
+        if (!product || product.farmer.toString() !== farmerId) return;
+
+        const productId = product._id.toString();
+        if (!grouped[productId]) {
+          grouped[productId] = {
+            product: product.name,
+            orders: []
+          };
+        }
+
+        grouped[productId].orders.push({
+          buyer: {
+            name: order.user.name,
+            email: order.user.email
+          },
+          quantity: item.quantity,
+          orderId: order._id,
+          date: order.createdAt
+        });
+      });
+    });
+
+    res.json(Object.values(grouped));
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ error: 'Ntibyakunze kubona orders z’ibicuruzwa' });
   }
 };
