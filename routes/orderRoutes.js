@@ -6,7 +6,7 @@ router.post('/place-order', authMiddleware, orderController.placeOrder);
 router.get('/get-order', authMiddleware, orderController.getOrders);
 router.get('/get-order-by-user/:id', authMiddleware, orderController.getOrdersByUserId); 
 router.get('/clean-order', authMiddleware, orderController.clearCart);
-router.get('/get', authMiddleware, orderController.getOrdersGroupedByProductForFarmer);
+router.get('/get-orders-by-product', authMiddleware, orderController.getOrdersGroupedByProductForFarmer);
 
 
 
