@@ -21,7 +21,6 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -136,3 +135,23 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
+
+exports.getMyProducts = async (req, res) => {
+  try {
+    const farmerId = req.user.id;
+
+    const products = await Product.find({ farmer: farmerId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: 'Fetched your products successfully',
+      status: 'success',
+      data: products,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: 'Failed to fetch your products',
+      status: 'error',
+      error: err.message,
+    });
+  }
+};
