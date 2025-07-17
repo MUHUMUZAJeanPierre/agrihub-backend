@@ -34,17 +34,20 @@ exports.createProduct = async (req, res) => {
       region
     } = req.body;
 
+    // ✅ Get farmer from authenticated user
+    const farmer = req.user?.id;
 
     if (!farmer) {
       return res.status(400).json({
-        message: 'Farmer ID is required (make sure the user is authenticated)',
+        message: 'Farmer ID is required (from authenticated token)',
         status: 'error',
         data: null
       });
     }
+
     if (!title || !description || !current_price || !past_price || !img || !category) {
       return res.status(400).json({
-        message: 'Missing required fields: title, description, current_price, past_price, img, and category are required',
+        message: 'Missing required fields',
         status: 'error',
         data: null
       });
@@ -54,6 +57,7 @@ exports.createProduct = async (req, res) => {
       'vegetables', 'fruits', 'grains', 'tubers', 'legumes',
       'seeds', 'herbs', 'oil_crops', 'cereals', 'packaged'
     ];
+
     if (!allowedCategories.includes(category)) {
       return res.status(400).json({
         message: `Invalid category. Allowed categories are: ${allowedCategories.join(', ')}`,
@@ -70,9 +74,8 @@ exports.createProduct = async (req, res) => {
       img,
       category,
       region,
-      farmer: req.user.id
+      farmer // ✅ Assign authenticated user ID here
     });
-
 
     const savedProduct = await newProduct.save();
 
@@ -92,6 +95,7 @@ exports.createProduct = async (req, res) => {
     });
   }
 };
+
 
 
 exports.updateProduct = async (req, res) => {
