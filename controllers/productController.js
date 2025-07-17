@@ -1,6 +1,5 @@
 const Product = require('../models/Product');
 
-
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
@@ -9,7 +8,6 @@ exports.getAllProducts = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch products', error: err.message });
   }
 };
-
 
 exports.getProductById = async (req, res) => {
   try {
@@ -20,21 +18,6 @@ exports.getProductById = async (req, res) => {
     res.status(400).json({ message: 'Invalid product ID', error: err.message });
   }
 };
-
-
-// exports.createProduct = async (req, res) => {
-//   try {
-//     const product = new Product({
-//       ...req.body,
-//       farmer: req.user.id 
-//     });
-//     const saved = await product.save();
-//     res.status(201).json(saved);
-//   } catch (err) {
-//     res.status(400).json({ message: 'Failed to create product', error: err.message });
-//   }
-// };
-
 
 exports.createProduct = async (req, res) => {
   try {
@@ -47,17 +30,6 @@ exports.createProduct = async (req, res) => {
       category,
       region
     } = req.body;
-
-    const farmer = req.user?.id;
-
-    // Check if farmer is present
-    if (!farmer) {
-      return res.status(400).json({
-        message: 'Farmer ID is required (make sure the user is authenticated)',
-        status: 'error',
-        data: null
-      });
-    }
 
     // Validate required fields
     if (!title || !description || !current_price || !past_price || !img || !category) {
@@ -89,8 +61,7 @@ exports.createProduct = async (req, res) => {
       past_price,
       img,
       category,
-      region,
-      farmer
+      region
     });
 
     const savedProduct = await newProduct.save();
@@ -112,15 +83,10 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-
 exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    if (product.farmer.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'You are not authorized to update this product' });
-    }
 
     const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -133,16 +99,10 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-
-
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    if (product.farmer.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'You are not authorized to delete this product' });
-    }
 
     await product.deleteOne();
     res.status(200).json({ message: 'Product deleted successfully' });
@@ -150,4 +110,3 @@ exports.deleteProduct = async (req, res) => {
     res.status(400).json({ message: 'Failed to delete product', error: err.message });
   }
 };
-

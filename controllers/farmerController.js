@@ -42,8 +42,6 @@ exports.getFarmerById = async (req, res) => {
     });
   }
 };
-
-// POST create farmer entry
 exports.createFarmer = async (req, res) => {
   try {
     const { blogTitle, blogurl, date, description, category, readTime, severity, author } = req.body;
