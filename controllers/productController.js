@@ -53,16 +53,16 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    // Create product
-    const newProduct = new Product({
-      title,
-      description,
-      current_price,
-      past_price,
-      img,
-      category,
-      region
-    });
+const newProduct = new Product({
+  title,
+  description,
+  current_price,
+  past_price,
+  img,
+  category,
+  region,
+  farmer: req.user.id 
+});
 
     const savedProduct = await newProduct.save();
 
