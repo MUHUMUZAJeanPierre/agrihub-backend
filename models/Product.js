@@ -6,12 +6,26 @@ const ProductSchema = new mongoose.Schema({
   ref: 'User',
   required: true,
 },
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  current_price: { type: String, required: true }, 
-  past_price: { type: String }, 
+  title: { 
+    type: String, 
+    required: true 
+  },
+  description: { 
+    type: String, 
+    required: true 
+  },
+  current_price: { 
+    type: String, 
+    required: true 
+  }, 
+  past_price: { 
+    type: String,
+    required: true 
+  }, 
   img: { 
-    type: String }, 
+    type: String, 
+    required: true 
+  }, 
   category: {
   type: String,
   required: true,
@@ -20,7 +34,7 @@ const ProductSchema = new mongoose.Schema({
     'seeds', 'herbs', 'oil_crops', 'cereals', 'packaged'
   ]
 },
-  region: { type: String },
+  region: { type: String }, 
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', ProductSchema);

@@ -22,19 +22,95 @@ exports.getProductById = async (req, res) => {
 };
 
 
+// exports.createProduct = async (req, res) => {
+//   try {
+//     const product = new Product({
+//       ...req.body,
+//       farmer: req.user.id 
+//     });
+//     const saved = await product.save();
+//     res.status(201).json(saved);
+//   } catch (err) {
+//     res.status(400).json({ message: 'Failed to create product', error: err.message });
+//   }
+// };
+
+
 exports.createProduct = async (req, res) => {
   try {
-    const product = new Product({
-      ...req.body,
-      farmer: req.user.id // Automatically set the farmer from logged-in user
+    const {
+      title,
+      description,
+      current_price,
+      past_price,
+      img,
+      category,
+      region
+    } = req.body;
+
+    const farmer = req.user?.id;
+
+    // Check if farmer is present
+    if (!farmer) {
+      return res.status(400).json({
+        message: 'Farmer ID is required (make sure the user is authenticated)',
+        status: 'error',
+        data: null
+      });
+    }
+
+    // Validate required fields
+    if (!title || !description || !current_price || !past_price || !img || !category) {
+      return res.status(400).json({
+        message: 'Missing required fields: title, description, current_price, past_price, img, and category are required',
+        status: 'error',
+        data: null
+      });
+    }
+
+    // Validate category value
+    const allowedCategories = [
+      'vegetables', 'fruits', 'grains', 'tubers', 'legumes',
+      'seeds', 'herbs', 'oil_crops', 'cereals', 'packaged'
+    ];
+    if (!allowedCategories.includes(category)) {
+      return res.status(400).json({
+        message: `Invalid category. Allowed categories are: ${allowedCategories.join(', ')}`,
+        status: 'error',
+        data: null
+      });
+    }
+
+    // Create product
+    const newProduct = new Product({
+      title,
+      description,
+      current_price,
+      past_price,
+      img,
+      category,
+      region,
+      farmer
     });
-    const saved = await product.save();
-    res.status(201).json(saved);
+
+    const savedProduct = await newProduct.save();
+
+    return res.status(201).json({
+      message: 'Product created successfully',
+      status: 'success',
+      data: savedProduct
+    });
+
   } catch (err) {
-    res.status(400).json({ message: 'Failed to create product', error: err.message });
+    console.error('Create Product Error:', err.message);
+    return res.status(500).json({
+      message: 'Failed to create product',
+      status: 'error',
+      data: null,
+      error: err.message
+    });
   }
 };
-
 
 
 exports.updateProduct = async (req, res) => {
