@@ -51,8 +51,7 @@ const extractPrice = (price) => {
 
 exports.getOrdersByUserId = async (req, res) => {
   try {
-    const buyerId = req.params.id;
-
+    const buyerId = req.query.userId;  // Using query parameter
     if (!buyerId) {
       return res.status(400).json({ error: 'Buyer ID is required' });
     }
@@ -76,7 +75,6 @@ exports.getOrdersByUserId = async (req, res) => {
 
 
 
-
 exports.placeOrder = async (req, res) => {
   console.log("Authenticated User:", req.user);
 
@@ -84,8 +82,8 @@ exports.placeOrder = async (req, res) => {
     const cart = await Cart.findOne({ user: req.user.id }).populate({
       path: 'items.product',
       populate: {
-        path: 'farmer', // 👈 Nested populate
-        select: 'name email phone role' // Include farmer details you want
+        path: 'farmer',
+        select: 'name email phone role' 
       }
     });
 
