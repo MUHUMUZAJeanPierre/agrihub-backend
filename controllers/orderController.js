@@ -133,9 +133,6 @@ exports.placeOrder = async (req, res) => {
 
 
 
-
-
-
 exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
   try {
     const farmerId = req.user.id;
