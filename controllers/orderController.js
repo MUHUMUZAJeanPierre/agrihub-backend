@@ -2,7 +2,6 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const mongoose = require('mongoose');
-const { ObjectId } = require('mongodb');
 
 exports.getOrdersWithoutId = async (req, res) => {
   try {
@@ -19,20 +18,20 @@ exports.getOrdersWithoutId = async (req, res) => {
 };
  
 
-// exports.getOrders = async (req, res) => {
-//   try {
-//     const orders = await Order.find({ user: req.user.id }).populate('items.product');
+exports.getOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id }).populate('items.product');
 
-//     if (!orders || orders.length === 0) {
-//       return res.status(404).json({ message: 'No orders found for this user' });
-//     }
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this user' });
+    }
 
-//     res.json(orders); 
-//   } catch (err) {
-//     console.error('Error fetching orders:', err);
-//     res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
-//   }
-// };
+    res.json(orders); 
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
+  }
+};
 
 
 
@@ -46,8 +45,6 @@ const extractPrice = (price) => {
   const numericPrice = parseFloat(price.replace(/[^\d.]/g, ''));
   return isNaN(numericPrice) ? 0 : numericPrice;  
 };
-
-
 
 
 
@@ -241,6 +238,7 @@ exports.placeOrder = async (req, res) => {
   }
 };
 
+
 exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
   try {
     const farmerId = req.user.id;
@@ -292,174 +290,3 @@ exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
     res.status(500).json({ error: 'Ntibyakunze kubona orders z’ibicuruzwa' });
   }
 };
-
-
-
-// Enhanced getOrders function with debugging and fixes
-exports.getOrders = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    
-    // Validate user ID exists
-    if (!userId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'User ID is required' 
-      });
-    }
-
-    console.log("Searching for orders with user ID:", userId);
-
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid user ID format' 
-      });
-    }
-
-    // Convert to ObjectId
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-
-    // Query orders with proper ObjectId handling
-    const orders = await Order.find({ 
-      user: userObjectId 
-    })
-    .populate({
-      path: 'items.product',
-      populate: {
-        path: 'farmer',
-        select: 'name email phone role'
-      }
-    })
-    .populate('user', 'name email')
-    .sort({ createdAt: -1 }) // Sort by newest first
-    .lean(); // Use lean() for better performance if you don't need Mongoose document methods
-
-    console.log("Found orders:", orders.length);
-    
-    // Handle empty results
-    if (!orders || orders.length === 0) {
-      // Optional: Debug logging (remove in production)
-      if (process.env.NODE_ENV === 'development') {
-        await debugOrdersForUser(userId);
-      }
-      
-      return res.status(200).json({ 
-        success: true,
-        message: 'No orders found for this user',
-        data: [],
-        count: 0
-      });
-    }
-
-    // Success response
-    res.status(200).json({
-      success: true,
-      message: 'Orders fetched successfully',
-      data: orders,
-      count: orders.length
-    });
-
-  } catch (err) {
-    console.error('Error fetching orders:', err);
-    
-    // Handle specific MongoDB errors
-    if (err.name === 'CastError') {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid user ID format' 
-      });
-    }
-    
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid query parameters' 
-      });
-    }
-
-    // Generic server error
-    res.status(500).json({ 
-      success: false,
-      message: 'Failed to fetch orders. Please try again later.',
-      ...(process.env.NODE_ENV === 'development' && { error: err.message })
-    });
-  }
-};
-
-// Alternative simpler version if the above doesn't work
-// exports.getOrdersSimple = async (req, res) => {
-//   try {
-//     console.log("User from req.user:", req.user);
-    
-//     if (!req.user || !req.user.id) {
-//       return res.status(401).json({ error: 'User not authenticated' });
-//     }
-
-//     const userId = req.user.id;
-    
-//     // First, try to find orders without population
-//     const orders = await Order.find({ user: userId });
-//     console.log("Orders found (no population):", orders.length);
-    
-//     if (orders.length === 0) {
-//       return res.status(404).json({ message: 'No orders found for this user' });
-//     }
-
-//     // Then populate step by step
-//     const populatedOrders = await Order.find({ user: userId })
-//       .populate('items.product')
-//       .populate('user', 'name email');
-
-//     console.log("Orders after population:", populatedOrders.length);
-    
-//     res.json(populatedOrders); 
-//   } catch (err) {
-//     console.error('Error fetching orders:', err);
-//     res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
-//   }
-// };
-
-// Debug function to check data consistency
-// exports.debugOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id;
-//     console.log("Debug - User ID:", userId);
-    
-//     // Check all orders
-//     const allOrders = await Order.find({});
-//     console.log("Total orders:", allOrders.length);
-    
-//     // Check orders for this user
-//     const userOrders = await Order.find({ user: userId });
-//     console.log("User orders:", userOrders.length);
-    
-//     // Check user ID format in existing orders
-//     const sampleOrders = await Order.find({}).limit(5);
-//     console.log("Sample order user IDs and types:");
-//     sampleOrders.forEach((order, index) => {
-//       console.log(`Order ${index + 1}:`, {
-//         orderId: order._id,
-//         userId: order.user,
-//         userIdType: typeof order.user,
-//         isObjectId: mongoose.Types.ObjectId.isValid(order.user),
-//         matches: order.user.toString() === userId
-//       });
-//     });
-    
-//     res.json({
-//       userId,
-//       totalOrders: allOrders.length,
-//       userOrders: userOrders.length,
-//       sampleOrders: sampleOrders.map(o => ({
-//         orderId: o._id,
-//         userId: o.user,
-//         userIdType: typeof o.user
-//       }))
-//     });
-//   } catch (err) {
-//     console.error('Debug error:', err);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
