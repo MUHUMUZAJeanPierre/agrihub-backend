@@ -34,35 +34,17 @@ exports.getOrdersWithoutId = async (req, res) => {
 // };
 
 
+// Example of fetching orders by user ID
 exports.getOrders = async (req, res) => {
   try {
-    // Ensure the user is authenticated and that req.user.id exists
-    if (!req.user || !req.user.id) {
-      return res.status(400).json({ error: 'User not authenticated or user ID missing' });
-    }
-
-    // Optionally, implement pagination to limit the number of orders returned
-    const page = parseInt(req.query.page) || 1;  // Default to page 1
-    const limit = parseInt(req.query.limit) || 10;  // Default to 10 orders per page
-    const skip = (page - 1) * limit;
-
-    // Query orders by user, populate product details, and paginate
     const orders = await Order.find({ user: req.user.id })
-      .populate('items.product')
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 }); // Optional: sort by creation date descending
-
-    // If no orders found for the user, return 404
-    if (orders.length === 0) {
+    if (!orders) {
       return res.status(404).json({ message: 'No orders found for this user' });
     }
-
-    // Return the orders
     res.json(orders);
   } catch (err) {
     console.error('Error fetching orders:', err);
-    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
+    res.status(500).json({ message: 'Failed to fetch orders' });
   }
 };
 
