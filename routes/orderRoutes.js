@@ -9,6 +9,8 @@ router.get('/clean-order', authMiddleware, orderController.clearCart);
 router.get('/get-orders-by-product', authMiddleware, orderController.getOrdersGroupedByProductForFarmer);
 
 
+router.get('/orders/:orderId', authMiddleware, orderController.getOrderById);
+
 
 
 module.exports = router;

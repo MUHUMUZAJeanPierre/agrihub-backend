@@ -18,15 +18,48 @@ exports.getOrdersWithoutId = async (req, res) => {
 };
  
 
+// exports.getOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find({ user: req.user.id }).populate('items.product');
+
+//     if (!orders || orders.length === 0) {
+//       return res.status(404).json({ message: 'No orders found for this user' });
+//     }
+
+//     res.json(orders); 
+//   } catch (err) {
+//     console.error('Error fetching orders:', err);
+//     res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
+//   }
+// };
+
+
 exports.getOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).populate('items.product');
+    // Ensure the user is authenticated and that req.user.id exists
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({ error: 'User not authenticated or user ID missing' });
+    }
 
-    if (!orders || orders.length === 0) {
+    // Optionally, implement pagination to limit the number of orders returned
+    const page = parseInt(req.query.page) || 1;  // Default to page 1
+    const limit = parseInt(req.query.limit) || 10;  // Default to 10 orders per page
+    const skip = (page - 1) * limit;
+
+    // Query orders by user, populate product details, and paginate
+    const orders = await Order.find({ user: req.user.id })
+      .populate('items.product')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Optional: sort by creation date descending
+
+    // If no orders found for the user, return 404
+    if (orders.length === 0) {
       return res.status(404).json({ message: 'No orders found for this user' });
     }
 
-    res.json(orders); 
+    // Return the orders
+    res.json(orders);
   } catch (err) {
     console.error('Error fetching orders:', err);
     res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
@@ -290,3 +323,36 @@ exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
     res.status(500).json({ error: 'Ntibyakunze kubona orders z’ibicuruzwa' });
   }
 };
+
+
+
+exports.getOrderById = async (req, res) => {
+  const { orderId } = req.params;
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    return res.status(400).json({ error: 'Invalid order ID' });
+  }
+
+  try {
+    const order = await Order.findById(orderId)
+      .populate('user', 'name email') // Populate user details
+      .populate({
+        path: 'items.product',
+        populate: {
+          path: 'farmer', // Assuming product has a farmer field
+          select: 'name email phone role'
+        }
+      });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.status(200).json({ order });
+  } catch (err) {
+    console.error('Error fetching order:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
