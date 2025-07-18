@@ -26,13 +26,12 @@ exports.getOrders = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this user' });
     }
 
-    res.json(orders);
+    res.json(orders); 
   } catch (err) {
     console.error('Error fetching orders:', err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
   }
 };
-
 
 
 
@@ -52,7 +51,8 @@ const extractPrice = (price) => {
 
 exports.getOrdersByUserId = async (req, res) => {
   try {
-    const buyerId = req.query.userId;  
+    const buyerId = req.params.id;
+
     if (!buyerId) {
       return res.status(400).json({ error: 'Buyer ID is required' });
     }
@@ -76,11 +76,11 @@ exports.getOrdersByUserId = async (req, res) => {
 
 
 
+
 exports.placeOrder = async (req, res) => {
   console.log("Authenticated User:", req.user);
 
   try {
-    // Retrieve the user's cart
     const cart = await Cart.findOne({ user: req.user.id }).populate({
       path: 'items.product',
       populate: {
@@ -89,18 +89,20 @@ exports.placeOrder = async (req, res) => {
       }
     });
 
-    if (!cart || !cart.items.length) {
+    if (!cart) {
+      return res.status(400).json({ error: 'Cart not found' });
+    }
+
+    if (!cart.items || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
-    // Calculate total amount
     let totalAmount = 0;
     cart.items.forEach(item => {
-      const price = parseFloat(item.product.current_price.replace(/[^\d.]/g, ''));
+      const price = extractPrice(item.product.current_price);
       totalAmount += price * item.quantity;
     });
 
-    // Create an order from the cart
     const order = new Order({
       user: req.user.id,
       items: cart.items.map(item => ({
@@ -110,22 +112,17 @@ exports.placeOrder = async (req, res) => {
       totalAmount,
     });
 
-    // Save the order
     const savedOrder = await order.save();
 
-    // Repopulate order with product & farmer details
+    // 🔄 Repopulate order with product & farmer details for response
     const populatedOrder = await Order.findById(savedOrder._id).populate({
       path: 'items.product',
       populate: {
         path: 'farmer',
-        select: 'name email phone role'
+        select: 'name email phone role' // Choose fields you need
       }
     }).populate('user', 'name email');
 
-    // Clear the cart after placing the order
-    await Cart.findOneAndDelete({ user: req.user.id });
-
-    // Return the populated order
     res.status(201).json({ message: 'Order placed successfully', order: populatedOrder });
   } catch (err) {
     console.error('Error placing order:', err);
@@ -134,30 +131,35 @@ exports.placeOrder = async (req, res) => {
 };
 
 
+
+
+
+
+
 exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
   try {
     const farmerId = req.user.id;
 
-    // Fetch products by farmer
+    // 1. Fata ibicuruzwa by'uyu mufama
     const products = await Product.find({ farmer: farmerId }).select('_id name');
     const productIds = products.map(p => p._id);
 
     if (productIds.length === 0) {
-      return res.status(404).json({ message: 'No products found for this farmer' });
+      return res.status(404).json({ message: 'Nta bicuruzwa byabonetse by\'uyu mufama' });
     }
 
-    // Fetch orders for products that belong to this farmer
+    // 2. Fata orders zose zifite ibyo bicuruzwa
     const orders = await Order.find({ 'items.product': { $in: productIds } })
       .populate('items.product')
       .populate('user');
 
-    // Group orders by product
+    // 3. Group orders by product
     const grouped = {};
 
     orders.forEach(order => {
       order.items.forEach(item => {
         const product = item.product;
-        if (product.farmer.toString() !== farmerId) return;
+        if (!product || product.farmer.toString() !== farmerId) return;
 
         const productId = product._id.toString();
         if (!grouped[productId]) {
@@ -182,6 +184,6 @@ exports.getOrdersGroupedByProductForFarmer = async (req, res) => {
     res.json(Object.values(grouped));
   } catch (err) {
     console.error('Error:', err);
-    res.status(500).json({ error: 'Failed to fetch orders grouped by product' });
+    res.status(500).json({ error: 'Ntibyakunze kubona orders z’ibicuruzwa' });
   }
 };
