@@ -35,19 +35,39 @@ exports.getOrdersWithoutId = async (req, res) => {
 
 
 // Example of fetching orders by user ID
+// exports.getOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find({ user: req.user.id })
+//     if (!orders) {
+//       return res.status(404).json({ message: 'No orders found for this user' });
+//     }
+//     res.json(orders);
+//   } catch (err) {
+//     console.error('Error fetching orders:', err);
+//     res.status(500).json({ message: 'Failed to fetch orders' });
+//   }
+// };
+
 exports.getOrders = async (req, res) => {
   try {
+    console.log('Fetching orders for user:', req.user.id); // Debug log
+    
     const orders = await Order.find({ user: req.user.id })
+      .populate('items.product') // Add this to populate product details
+      .populate('user', 'name email'); // Optional: populate user details
+      
+    console.log('Found orders:', orders.length); // Debug log
+    
     if (!orders) {
       return res.status(404).json({ message: 'No orders found for this user' });
     }
+    
     res.json(orders);
   } catch (err) {
     console.error('Error fetching orders:', err);
-    res.status(500).json({ message: 'Failed to fetch orders' });
+    res.status(500).json({ message: 'Failed to fetch orders', error: err.message });
   }
 };
-
 
 
 exports.clearCart = async (req, res) => {
