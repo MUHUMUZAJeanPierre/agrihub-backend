@@ -31,7 +31,6 @@ router.get('/get-orders-by-product', authMiddleware, orderController.getOrdersGr
 // Debug endpoint to see all orders and current user
 router.get('/debug-all-orders', authMiddleware, orderController.getAllOrdersDebug);
 
-// Admin endpoint to get all orders
 router.get('/admin/all-orders', authMiddleware, orderController.getAllOrdersAdmin);
 
 router.get('/orders/:orderId', authMiddleware, orderController.getOrderById);
