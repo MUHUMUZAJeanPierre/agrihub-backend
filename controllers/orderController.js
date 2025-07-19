@@ -1198,6 +1198,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Utility function to extract price
 const extractPrice = (price) => {
@@ -1375,25 +1376,36 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-// Cancel an order (for user)
+
 exports.cancelOrder = async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const userId = req.user.id;
-    const order = await Order.findOne({ _id: orderId, user: userId });
+    let { orderId } = req.params;
+
+    // Remove any leading or trailing colons or unwanted characters
+    orderId = orderId.replace(/^:/, '');
+
+    // Check if the orderId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: "Invalid order ID format" });
+    }
+
+    // Find the order by ID
+    const order = await Order.findById(orderId);
 
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
 
-    if (['Shipped', 'Delivered'].includes(order.status)) {
-      return res.status(400).json({ error: 'Cannot cancel shipped or delivered orders' });
+    // Check if the order can be canceled (based on your business logic)
+    if (order.status === 'shipped' || order.status === 'delivered') {
+      return res.status(400).json({ message: "Cannot cancel order after it has been shipped or delivered" });
     }
 
-    order.status = 'Cancelled';
+    // Update the order status to 'canceled'
+    order.status = 'canceled';
     await order.save();
 
-    res.json({ message: 'Order cancelled successfully', order });
+    return res.status(200).json({ message: "Order canceled successfully", order });
   } catch (err) {
     console.error('Error cancelling order:', err);
     res.status(500).json({ error: 'Failed to cancel order' });

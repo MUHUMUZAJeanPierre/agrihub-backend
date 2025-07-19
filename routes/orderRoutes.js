@@ -52,7 +52,7 @@ router.get('/:orderId', auth, orderController.getOrderById);
 router.get('/user/:id', auth, orderController.getOrdersByUserId);
 router.delete('/cart/clear', auth, orderController.clearCart);
 router.put('/:orderId/status', auth, orderController.updateOrderStatus);
-router.put('/:orderId/cancel', auth, orderController.cancelOrder);
+router.delete('/cancel-order/:orderId', auth, orderController.cancelOrder);
 
 router.use((err, req, res, next) => {
   console.error(err.stack);
