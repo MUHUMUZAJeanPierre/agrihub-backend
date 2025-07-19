@@ -223,3 +223,45 @@ exports.getOrdersForFarmer = async (req, res) => {
     return res.status(500).json({ error: 'Failed to retrieve orders' });
   }
 };
+
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;  // Extract order ID from the params
+    const { status } = req.body;  // Extract new status from the request body
+
+    // Valid status options
+    const validStatuses = ['Processed', 'Shipped', 'Delivered', 'canceled'];
+
+    // Check if the status is valid
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status provided" });
+    }
+
+    // Find the order
+    const order = await Order.findById(orderId);
+
+    // Check if the order exists
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Check if the farmer is the one who placed the product
+    // Assuming you have the 'farmer' field in the Product model
+    const productIds = order.items.map(item => item.product.toString());
+    const farmerProducts = await Product.find({ farmer: req.user._id, _id: { $in: productIds } });
+
+    if (!farmerProducts || farmerProducts.length === 0) {
+      return res.status(403).json({ message: "You do not have permission to update this order" });
+    }
+
+    // Update the status
+    order.status = status;
+    await order.save();
+
+    return res.status(200).json({ message: `Order status updated to ${status}`, order });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return res.status(500).json({ error: "Failed to update order status" });
+  }
+};
