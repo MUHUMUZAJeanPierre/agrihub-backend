@@ -300,7 +300,6 @@ exports.placeOrder = async (req, res) => {
         return res.status(400).json({ error: 'Some products not found' });
       }
 
-      // Calculate total amount (server-side validation for security)
       let calculatedTotal = 0;
       const orderItems = directItems.map(item => {
         const product = products.find(p => p._id.toString() === item.product);
