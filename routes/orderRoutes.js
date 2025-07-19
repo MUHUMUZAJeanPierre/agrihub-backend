@@ -7,6 +7,8 @@ const auth = require('../middleware/auth');
 router.get('/', auth, orderController.getOrders);
 router.post('/place-order', auth, orderController.placeOrder);
 router.delete('/cancel-order/:orderId', auth, orderController.cancelOrder);
+router.get('/farmer-orders', auth, orderController.getOrdersForFarmer);
+
 
 router.get('/debug/all', auth, orderController.getAllOrdersDebug);
 router.get('/:orderId', auth, orderController.getOrderById);

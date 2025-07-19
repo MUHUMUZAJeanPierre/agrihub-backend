@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const Product = require('../models/Product');
 const mongoose = require('mongoose');
 
 const extractPrice = (price) => {
@@ -190,5 +191,35 @@ exports.cancelOrder = async (req, res) => {
   } catch (err) {
     console.error('Error cancelling order:', err);
     res.status(500).json({ error: 'Failed to cancel order' });
+  }
+};
+
+exports.getOrdersForFarmer = async (req, res) => {
+  try {
+    // Assuming farmer's user ID is available in the `req.user._id` (after authentication)
+    const farmerId = req.user._id; 
+
+    // Fetch all products for the logged-in farmer
+    const products = await Product.find({ farmer: farmerId }).select('_id');
+
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: 'No products found for this farmer' });
+    }
+
+    // Get order IDs of orders with the farmer's products
+    const orders = await Order.find({
+      'items.product': { $in: products.map(p => p._id) },
+    }).populate('items.product'); // Populate product details
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this farmer\'s products' });
+    }
+
+    // Return the orders to the farmer
+    return res.status(200).json(orders);
+
+  } catch (err) {
+    console.error('Error fetching orders for farmer:', err);
+    return res.status(500).json({ error: 'Failed to retrieve orders' });
   }
 };
