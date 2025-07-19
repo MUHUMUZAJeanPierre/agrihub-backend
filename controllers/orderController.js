@@ -255,7 +255,6 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(403).json({ message: "You do not have permission to update this order" });
     }
 
-    // Update the status
     order.status = status;
     await order.save();
 
